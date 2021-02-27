@@ -1,0 +1,4 @@
+requests
+click
+tabulate
+python-sonarqube-api
