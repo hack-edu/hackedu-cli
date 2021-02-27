@@ -1,5 +1,5 @@
 import click
-from api import Api
+import requests
 from integrations.sonarqube import SonarqubeBase
 import uuid
 import json
@@ -7,21 +7,40 @@ from tabulate import tabulate
 from urllib.parse import urlencode
 import time
 
+
+
 class State(object):
 
     def __init__(self):
-        self.verbosity = 0
-        self.debug = False
         self.api_key = None
         self.headers = None
+        self.host = None
 
 pass_state = click.make_pass_decorator(State, ensure=True)
+
+
+def env_option(f):
+    def callback(ctx, param, value):
+        state = ctx.ensure_object(State)
+        if value:
+            if value.lower() == 'local':
+                state.host = 'http://localhost:5008'
+            elif value.lower() == 'dev':
+                state.host = 'https://api.hackedu.dev'
+            elif value.lower() == 'prod':
+                state.host = 'https://api.hackedu.com'
+        else:
+            state.host = 'https://api.hackedu.com'
+        return value
+    return click.option("--env",
+                        expose_value=False,
+                        help="Optional env used to determine HackEDU Public API host.",
+                        callback=callback)(f)
 
 
 def api_key_option(f):
     def callback(ctx, param, value):
         state = ctx.ensure_object(State)
-        state.api_key = value
         state.headers = {"X-API-Key": value}
         return value
     return click.option("--api_key",
@@ -31,6 +50,7 @@ def api_key_option(f):
 
 def common_options(f):
     f = api_key_option(f)
+    f = env_option(f)
     return f
 
 
@@ -48,13 +68,12 @@ def hackedu():
 @pass_state
 def issue_source(state, argument, title, type):
     """List issue sources."""
-    api = Api(state.headers)
-    issue_source_path = "/v1-beta/issue-sources"
-    # issue_source_types_path = "/v1-beta/issue-source-types"
-    organization_path = "/v1-beta/organization"
+    issue_source_url = "{}/v1-beta/issue-sources".format(state.host)
+    # issue_source_types_path = "{}/v1-beta/issue-source-types".format(state.host)
+    organization_url = "{}/v1-beta/organization".format(state.host)
 
     if argument == "ls":
-        response = api.get(issue_source_path)
+        response = requests.get(issue_source_url, headers=state.headers)
         if response.status_code == 200:
             items = response.json()["issue_sources"]
             if items:
@@ -72,7 +91,7 @@ def issue_source(state, argument, title, type):
             print("Error: Missing required option '--title'")
             return
 
-        # response = api.get("{}?key={}".format(issue_source_types_path, type))
+        # response = requests.get("{}?key={}".format(issue_source_types_path, type), headers=state.headers)
         # key = response.json()["issue_source_types"][0]["issue_source_type_id"]
 
         #TODO: if we need to pick through multiple sources or source types use this
@@ -83,7 +102,7 @@ def issue_source(state, argument, title, type):
         # )
 
         print("creating issue source...")
-        organization_uuid = api.get(organization_path)
+        organization_uuid = requests.get(organization_url, headers=state.headers)
 
         payload = {
             "uuid":uuid.uuid4(),
@@ -92,7 +111,7 @@ def issue_source(state, argument, title, type):
             "organization_uuid": organization_uuid,
             "settings": json.dumps({}),
         }
-        response = api.post(issue_source_path, payload)
+        response = requests.post(issue_source_url, data=payload, headers=state.headers)
         if response.status_code == 200:
             print("Success!")
             print(response.json()["uuid"])
@@ -115,13 +134,12 @@ def issue_source(state, argument, title, type):
 @pass_state
 def issues(state, argument, url, username, password, branch, app, source):
     """List issues from source uuid."""
-    api = Api(state.headers)
     sonarqube = SonarqubeBase(url, username, password, app, branch)
-    issues_path = "/v1-beta/issues"
-    vulnerabilities_path = "/v1-beta/vulnerabilities"
+    issues_url = "{}/v1-beta/issues".format(state.host)
+    vulnerabilities_url = "{}/v1-beta/vulnerabilities".format(state.host)
 
     if argument == "ls":
-        response = api.get(issues_path)
+        response = requests.get(issues_url, headers=state.headers)
         issues = response.json()["issues"]
         header = ["issue uuid", "unique id"]
         rows = []
@@ -137,8 +155,8 @@ def issues(state, argument, url, username, password, branch, app, source):
         print('syncing issues to hackedu...')
 
         for sonarqube_vulnerability in sonarqube_vulnerabilities:
-            response = api.get("{}?{}".format(vulnerabilities_path,
-                                              urlencode(sonarqube_vulnerability["vulnerability_types"])))
+            response = requests.get("{}?{}".format(vulnerabilities_url,
+                                              urlencode(sonarqube_vulnerability["vulnerability_types"])), headers=state.headers)
             if response.status_code != 200:
                 print("Something went wrong")
                 print(response.json())
@@ -156,7 +174,7 @@ def issues(state, argument, url, username, password, branch, app, source):
                 "timestamp": sonarqube_vulnerability["timestamp"],
                 "url": "{}/project/issues?id={}&types=VULNERABILITY".format(url, app)
             }
-            response = api.post(issues_path, payload)
+            response = requests.post(issues_url, data=payload, headers=state.headers)
             if response.status_code != 200:
                 print("Something went wrong")
                 print(response.json())
