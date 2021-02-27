@@ -8,7 +8,6 @@ from urllib.parse import urlencode
 import time
 
 
-
 class State(object):
 
     def __init__(self):
@@ -23,14 +22,14 @@ def env_option(f):
     def callback(ctx, param, value):
         state = ctx.ensure_object(State)
         if value:
-            if value.lower() == 'local':
-                state.host = 'http://localhost:5008'
-            elif value.lower() == 'dev':
-                state.host = 'https://api.hackedu.dev'
-            elif value.lower() == 'prod':
-                state.host = 'https://api.hackedu.com'
+            if value.lower() == "local":
+                state.host = "http://localhost:5008"
+            elif value.lower() == "dev":
+                state.host = "https://api.hackedu.dev"
+            elif value.lower() == "prod":
+                state.host = "https://api.hackedu.com"
         else:
-            state.host = 'https://api.hackedu.com'
+            state.host = "https://api.hackedu.com"
         return value
     return click.option("--env",
                         expose_value=False,
@@ -57,7 +56,6 @@ def common_options(f):
 @click.group()
 def hackedu():
     """A CLI wrapper for the HackEDU Public API."""
-
 
 
 @hackedu.command("issue-source")
@@ -88,7 +86,7 @@ def issue_source(state, argument, title, type):
 
     if argument == "create":
         if not title:
-            print("Error: Missing required option '--title'")
+            print("Error: Missing required option "'--title'")
             return
 
         # response = requests.get("{}?key={}".format(issue_source_types_path, type), headers=state.headers)
@@ -152,7 +150,7 @@ def issues(state, argument, url, username, password, branch, app, source):
         success = False
         sonarqube_vulnerabilities = sonarqube.get_vulnerabilities()
         print("found {} issues".format(len(sonarqube_vulnerabilities)))
-        print('syncing issues to hackedu...')
+        print("syncing issues to hackedu...")
 
         for sonarqube_vulnerability in sonarqube_vulnerabilities:
             response = requests.get("{}?{}".format(vulnerabilities_url,
@@ -162,7 +160,7 @@ def issues(state, argument, url, username, password, branch, app, source):
                 print(response.json())
                 return
 
-            hackedu_vulnerability_id = response.json()['vulnerabilities'][0]["id"] #TODO: we might need to loop through this list?
+            hackedu_vulnerability_id = response.json()["vulnerabilities"][0]["id"] #TODO: we might need to loop through this list?
             payload = {
                 "title": sonarqube_vulnerability["title"],
                 "description": "",
