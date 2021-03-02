@@ -8,10 +8,12 @@ HERE = pathlib.Path(__file__).parent
 # The text of the README file
 README = (HERE / "README.md").read_text()
 
+VERSION = (HERE / "__version__.py").read_text().split('=')[1]
+
 # This call to setup() does all the work
 setup(
     name="hackedu-cli",
-    version="0.0.1",
+    version=VERSION,
     description="HackEDU's command line interface allows customer's to interact directly with HackEDU resources "
                 "from the command line.",
     long_description=README,
