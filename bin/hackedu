@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import click
 import requests
 from integrations.sonarqube import SonarqubeBase
@@ -86,7 +88,7 @@ def issue_source(state, argument, title, type):
 
     if argument == "create":
         if not title:
-            print("Error: Missing required option "'--title'")
+            print("Error: Missing required option '--title'")
             return
 
         # response = requests.get("{}?key={}".format(issue_source_types_path, type), headers=state.headers)
