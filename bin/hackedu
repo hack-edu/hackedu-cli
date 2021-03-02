@@ -35,7 +35,8 @@ def env_option(f):
         return value
     return click.option("--env",
                         expose_value=False,
-                        help="Optional env used to determine HackEDU Public API host.",
+                        help="Environment used to determine HackEDU Public API host. Can be local, dev, or prod. "
+                             "Defaults to prod",
                         callback=callback)(f)
 
 
@@ -45,8 +46,9 @@ def api_key_option(f):
         state.headers = {"X-API-Key": value}
         return value
     return click.option("--api_key",
+                        required=True,
                         expose_value=False,
-                        help="Required X-API-Key header for interacting with the HackEDU Public API.",
+                        help="X-API-Key header for interacting with the HackEDU Public API.",
                         callback=callback)(f)
 
 def common_options(f):
@@ -63,13 +65,17 @@ def hackedu():
 @hackedu.command("issue-source")
 @click.argument("argument")
 @click.option("--title", help="Name of issue source.")
-@click.option("--type", help="Name of issue source type.")
 @common_options
 @pass_state
-def issue_source(state, argument, title, type):
-    """List issue sources."""
+def issue_source(state, argument, title):
+    """
+    List and create issue sources.
+
+    Usage: hackedu issue-source [ARGUMENTS] [OPTIONS]
+
+    Available Arguments: [ls, create]
+    """
     issue_source_url = "{}/v1-beta/issue-sources".format(state.host)
-    # issue_source_types_path = "{}/v1-beta/issue-source-types".format(state.host)
     organization_url = "{}/v1-beta/organization".format(state.host)
 
     if argument == "ls":
@@ -90,16 +96,6 @@ def issue_source(state, argument, title, type):
         if not title:
             print("Error: Missing required option '--title'")
             return
-
-        # response = requests.get("{}?key={}".format(issue_source_types_path, type), headers=state.headers)
-        # key = response.json()["issue_source_types"][0]["issue_source_type_id"]
-
-        #TODO: if we need to pick through multiple sources or source types use this
-        # choice = click.prompt(
-        #     "Please select a source type:",
-        #     type=click.Choice([str(i) for i in types]),
-        #     show_default=False,
-        # )
 
         print("creating issue source...")
         organization_uuid = requests.get(organization_url, headers=state.headers)
@@ -129,11 +125,17 @@ def issue_source(state, argument, title, type):
 @click.option("--password", required=False, help="Sonarqube password")
 @click.option("--branch", required=False, help="Repository branch name.")
 @click.option("--app", required=False, help="Sonarqube app name.")
-@click.option("--source", required=False, help="Issue source uuid.")
+@click.option("--source", required=True, help="Issue source uuid.")
 @common_options
 @pass_state
 def issues(state, argument, url, username, password, branch, app, source):
-    """List issues from source uuid."""
+    """List and sync issues from source uuid.
+
+    Usage: hackedu issues [ARGUMENTS] [OPTIONS]
+
+    Available Arguments: [ls, sync]
+
+    """
     sonarqube = SonarqubeBase(url, username, password, app, branch)
     issues_url = "{}/v1-beta/issues".format(state.host)
     vulnerabilities_url = "{}/v1-beta/vulnerabilities".format(state.host)
