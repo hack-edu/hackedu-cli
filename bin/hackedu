@@ -76,7 +76,6 @@ def issue_source(state, argument, title):
     Available Arguments: [ls, create]
     """
     issue_source_url = "{}/v1-beta/issue-sources".format(state.host)
-    organization_url = "{}/v1-beta/organization".format(state.host)
 
     if argument == "ls":
         response = requests.get(issue_source_url, headers=state.headers)
@@ -98,13 +97,10 @@ def issue_source(state, argument, title):
             return
 
         print("creating issue source...")
-        organization_uuid = requests.get(organization_url, headers=state.headers)
 
         payload = {
             "uuid":uuid.uuid4(),
             "title": title,
-            # "type_": key,
-            "organization_uuid": organization_uuid,
             "settings": json.dumps({}),
         }
         response = requests.post(issue_source_url, data=payload, headers=state.headers)
