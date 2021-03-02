@@ -2,15 +2,12 @@ import pathlib
 import setuptools
 from setuptools import setup
 
-# The directory containing this file
 HERE = pathlib.Path(__file__).parent
 
-# The text of the README file
 README = (HERE / "README.md").read_text()
 
 VERSION = (HERE / "__version__.py").read_text().split('=')[1]
 
-# This call to setup() does all the work
 setup(
     name="hackedu-cli",
     version=VERSION,
