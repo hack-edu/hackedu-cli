@@ -83,17 +83,18 @@ def issue_source(state, argument, title):
 
     if argument == "ls":
         response = requests.get(issue_source_url, headers=state.headers)
-        if response.status_code == 200:
-            items = response.json()["issue_sources"]
-            if items:
-                header = list(items[0].keys())[0:3]
-                rows = [list(x.values())[0:3] for x in items]
-                print(tabulate(rows, header))
-            else:
-                print("Warning: No issue sources returned.")
+        if response.status_code != 200:
+            print("Something went wrong")
+            print(response.json())
+            return
+        items = response.json()["issue_sources"]
+        if items:
+            header = list(items[0].keys())[0:3]
+            rows = [list(x.values())[0:3] for x in items]
+            print(tabulate(rows, header))
         else:
-            print("Something went wrong. Please ensure your API Key is valid and that all issues "
-                  "sources have the proper settings.")
+            print("Warning: No issue sources returned.")
+
 
     if argument == "create":
         if not title:
@@ -108,12 +109,13 @@ def issue_source(state, argument, title):
             "settings": json.dumps({}),
         }
         response = requests.post(issue_source_url, data=payload, headers=state.headers)
-        if response.status_code == 200:
-            print("Success!")
-            print(response.json()["uuid"])
-        else:
-            print("Something went wrong...")
-            print (response.json())
+        if response.status_code != 200:
+            print("Something went wrong")
+            print(response.json())
+            return
+
+        print("Success!")
+        print(response.json()["uuid"])
 
 
 #TODO: make these sonarqube options required only if create argument is used.
@@ -142,6 +144,11 @@ def issues(state, argument, url, username, password, branch, app, source):
 
     if argument == "ls":
         response = requests.get(issues_url, headers=state.headers)
+        if response.status_code != 200:
+            print("Something went wrong")
+            print(response.json())
+            return
+
         issues = response.json()["issues"]
         header = ["issue uuid", "unique id"]
         rows = []
