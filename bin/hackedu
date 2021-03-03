@@ -78,7 +78,7 @@ def issue_source(state, argument, title):
 
     Available Arguments: [ls, create]
     """
-    issue_source_url = "{}/v1-beta/issue-sources".format(state.host)
+    issue_source_url = "{}/v1/issue-sources".format(state.host)
 
     if argument == "ls":
         response = requests.get(issue_source_url, headers=state.headers)
@@ -138,8 +138,8 @@ def issues(state, argument, url, username, password, branch, app, source):
 
     """
     sonarqube = SonarqubeBase(url, username, password, app, branch)
-    issues_url = "{}/v1-beta/issues".format(state.host)
-    vulnerabilities_url = "{}/v1-beta/vulnerabilities".format(state.host)
+    issues_url = "{}/v1/issues".format(state.host)
+    vulnerabilities_url = "{}/v1/vulnerabilities".format(state.host)
 
     if argument == "ls":
         response = requests.get(issues_url, headers=state.headers)
