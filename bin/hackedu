@@ -1,21 +1,20 @@
 #!/usr/bin/python
 
-import pathlib
 import click
-import requests
-from integrations.sonarqube import SonarqubeBase
-import uuid
 import json
+import pathlib
+import requests
+import time
+import uuid
+from integrations.sonarqube import SonarqubeBase
 from tabulate import tabulate
 from urllib.parse import urlencode
-import time
 
 HERE = pathlib.Path(__file__).parent
-VERSION = (HERE / "../__version__.py").read_text().split('=')[1]
+VERSION = (HERE / "../__version__.py").read_text().split("=")[1]
 
 
 class State(object):
-
     def __init__(self):
         self.api_key = None
         self.headers = None

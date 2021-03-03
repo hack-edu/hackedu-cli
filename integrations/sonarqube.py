@@ -3,11 +3,11 @@ import re
 
 class SonarqubeBase(object):
     def __init__(self, url, username, password, app, branch):
-        self.url = url #"http://localhost:9000"
-        self.username = username #"admin"
-        self.password = password #"admin"
-        self.app = app #"hackedu"
-        self.branch = branch #"master"
+        self.url = url
+        self.username = username
+        self.password = password
+        self.app = app
+        self.branch = branch
         self.client = SonarQubeClient(sonarqube_url=self.url, username=self.username, password=self.password)
 
     def get_vulnerabilities(self):
@@ -48,4 +48,3 @@ class SonarqubeBase(object):
                 vulnerabilities.append(vulnerability_obj)
 
         return vulnerabilities
-
