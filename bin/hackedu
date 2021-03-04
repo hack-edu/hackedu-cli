@@ -1,14 +1,16 @@
 #!/usr/bin/python
 
+import os
 import click
 import json
 import pathlib
 import requests
-import time
 import uuid
 from integrations.sonarqube import SonarqubeBase
 from tabulate import tabulate
 from urllib.parse import urlencode
+import time
+import configparser
 
 HERE = pathlib.Path(__file__).parent
 VERSION = (HERE / "../__version__.py").read_text().split("=")[1]
@@ -18,181 +20,246 @@ class State(object):
     def __init__(self):
         self.api_key = None
         self.headers = None
-        self.host = None
+        self.hackedu_url = None
+        self.url_prefix = "v1"
 
 pass_state = click.make_pass_decorator(State, ensure=True)
 
 
-def env_option(f):
+def config_option(f):
+    def callback(ctx, param, value):
+        state = ctx.ensure_object(State)
+        config = configparser.ConfigParser()
+        config.read(os.path.expanduser("~/.hackedu"))
+
+        if not state.headers:
+            state.headers = {"X-API-Key": config["default"]["api_key"]}
+        if not state.hackedu_url:
+            state.hackedu_url = config["default"]["hackedu_url"]
+
+        if value:
+            config.read(value)
+            state.headers = {"X-API-Key": config["default"]["api_key"]}
+            if not state.hackedu_url:
+                state.hackedu_url = config["default"]["hackedu_url"]
+
+
+        if "localhost" in state.hackedu_url:
+            state.url_prefix = "v1-beta"
+
+    return click.option("--config",
+                        expose_value=False,
+                        help="Configuration file used to determine HackEDU public API host and API Key. ",
+                        callback=callback)(f)
+
+
+def hackedu_url_option(f):
     def callback(ctx, param, value):
         state = ctx.ensure_object(State)
         if value:
-            if value.lower() == "local":
-                state.host = "http://localhost:5008"
-            elif value.lower() == "dev":
-                state.host = "https://api.hackedu.dev"
-            elif value.lower() == "prod":
-                state.host = "https://api.hackedu.com"
-        else:
-            state.host = "https://api.hackedu.com"
-        return value
-    return click.option("--env",
+            state.hackedu_url = value
+
+    return click.option("--hackedu_url",
                         expose_value=False,
-                        help="Environment used to determine HackEDU Public API host. Can be local, dev, or prod. "
-                             "Defaults to prod",
+                        help="Environment used to determine HackEDU public API host. ",
                         callback=callback)(f)
 
 
 def api_key_option(f):
     def callback(ctx, param, value):
         state = ctx.ensure_object(State)
-        state.headers = {"X-API-Key": value}
-        return value
+        if value:
+            state.headers = {"X-API-Key": value}
+
     return click.option("--api_key",
-                        required=True,
                         expose_value=False,
-                        help="X-API-Key header for interacting with the HackEDU Public API.",
+                        help="X-API-Key header for interacting with the HackEDU public API.",
                         callback=callback)(f)
 
 def common_options(f):
+    f = config_option(f)
     f = api_key_option(f)
-    f = env_option(f)
-    return f
+    f = hackedu_url_option(f)
 
+    return f
 
 @click.group()
 @click.version_option(VERSION)
 def hackedu():
-    """A CLI wrapper for the HackEDU Public API."""
+    """A CLI wrapper for the HackEDU public API."""
 
-@hackedu.command("issue-source")
-@click.argument("argument")
-@click.option("--title", help="Name of issue source.")
+@hackedu.command("config")
 @common_options
 @pass_state
-def issue_source(state, argument, title):
-    """
-    List and create issue sources.
-
-    Usage: hackedu issue-source [ARGUMENTS] [OPTIONS]
-
-    Available Arguments: [ls, create]
-    """
-    issue_source_url = "{}/v1/issue-sources".format(state.host)
-
-    if argument == "ls":
-        response = requests.get(issue_source_url, headers=state.headers)
-        if response.status_code != 200:
-            print("Something went wrong")
-            print(response.json())
-            return
-        items = response.json()["issue_sources"]
-        if items:
-            header = list(items[0].keys())[0:3]
-            rows = [list(x.values())[0:3] for x in items]
-            print(tabulate(rows, header))
+def config(state):
+    """Command to create your .hackedu config file."""
+    api_key = click.prompt("Please enter your HackEDU API Key", type=str)
+    if api_key:
+        config_location = click.prompt("Where would you like to store your HackEDU config file? Leave empty for default location:", type=str, default="~/")
+        file_contents = "[default]\napi_key={}\nhackedu_url=https://api.hackedu.com".format(api_key)
+        if config_location != "~/":
+            with open(os.path.expanduser("{}/.hackedu".format(config_location)), "w") as config_file:
+                config_file.write(file_contents)
         else:
-            print("Warning: No issue sources returned.")
+            with open(os.path.expanduser("~/.hackedu"), "w") as config_file:
+                config_file.write(file_contents)
 
 
-    if argument == "create":
-        if not title:
-            print("Error: Missing required option '--title'")
-            return
+@hackedu.group()
+@common_options
+@pass_state
+def issue_source(state):
+    """Issue Source commands"""
 
-        print("creating issue source...")
+@issue_source.command("ls")
+@common_options
+@pass_state
+def ls(state):
+    """List Issue Sources"""
+    issue_source_url = "{}/{}/issue-sources".format(state.hackedu_url, state.url_prefix)
+    issue_source_types_path = "{}/{}/issue-source-types".format(state.hackedu_url, state.url_prefix)
+    response = requests.get(issue_source_url, headers=state.headers)
+    if response.status_code != 200:
+        print("Something went wrong")
+        print(response.json())
+        return
+    items = response.json()["issue_sources"]
+    if items:
+        header = list(items[0].keys())[0:3]
+        rows = [list(x.values())[0:3] for x in items]
+        print(tabulate(rows, header))
+    else:
+        print("Warning: No issue sources returned.")
 
-        payload = {
-            "uuid":uuid.uuid4(),
-            "title": title,
-            "settings": json.dumps({}),
-        }
-        response = requests.post(issue_source_url, data=payload, headers=state.headers)
-        if response.status_code != 200:
-            print("Something went wrong")
-            print(response.json())
-            return
+@issue_source.command("create")
+@click.option("--title", help="Name of issue source.")
+@click.option("--type", help="Type of issue source.", type=click.Choice(["sonarqube"]))
+@common_options
+@pass_state
+def create(state, title, type):
+    """Create Issue Source"""
+    issue_source_url = "{}/{}/issue-sources".format(state.hackedu_url, state.url_prefix)
+    issue_source_types_path = "{}/{}/issue-source-types".format(state.hackedu_url, state.url_prefix)
+    if not title:
+        print("Error: Missing required option '--title'")
+        return
 
-        print("Success!")
-        print(response.json()["uuid"])
+    print("creating issue source...")
+
+    payload = {
+        "uuid":uuid.uuid4(),
+        "title": title,
+        "settings": json.dumps({}),
+    }
+
+    if type == "sonarqube":
+        response = requests.get("{}?key={}".format(issue_source_types_path, type), headers=state.headers)
+        issue_source_type_id = response.json()["issue_source_types"][0]["issue_source_type_id"]
+        payload["issue_source_type_id"] = issue_source_type_id
+
+    response = requests.post(issue_source_url, data=payload, headers=state.headers)
+    if response.status_code != 200:
+        print("Something went wrong")
+        print(response.json())
+        return
+
+    print("Success!")
+    print(response.json()["uuid"])
 
 
-#TODO: make these sonarqube options required only if create argument is used.
-#TODO: see custom classes: https://stackoverflow.com/questions/44247099/click-command-line-interfaces-make-options-required-if-other-optional-option-is
-@hackedu.command("issues")
-@click.argument("argument")
+@hackedu.group()
+@common_options
+@pass_state
+def issues(state):
+    """Issues command"""
+
+@issues.command("ls")
+@click.option("--source", help="HackEDU Issue source uuid.")
+@common_options
+@pass_state
+def ls(state, source):
+    """List Issues"""
+    issues_url = "{}/{}/issues".format(state.hackedu_url, state.url_prefix)
+    if source:
+        issues_url = "{}/{}/issues?source={}".format(state.hackedu_url, state.url_prefix, source)
+
+    response = requests.get(issues_url, headers=state.headers)
+    if response.status_code != 200:
+        print("Something went wrong")
+        print(response.json())
+        return
+
+    issues = response.json()["issues"]
+    header = ["issue uuid", "unique id"]
+    rows = []
+    for issue in issues:
+        rows.append([issue["uuid"], issue["issue_source_unique_id"]])
+    print(tabulate(rows, header))
+
+
+
+@issues.group()
+@common_options
+@pass_state
+def sync(state):
+    """Sync Issues"""
+
+@sync.command("sonarqube")
+@click.option("--source", required=True, help="HackEDU Issue source uuid.")
 @click.option("--url", required=False, help="Sonarqube URL.")
 @click.option("--username", required=False, help="Sonarqube username.")
 @click.option("--password", required=False, help="Sonarqube password")
-@click.option("--branch", required=False, help="Repository branch name.")
+@click.option("--branch", required=False, help="Repository branch name that Sonarqube will analyze.")
 @click.option("--app", required=False, help="Sonarqube app name.")
-@click.option("--source", required=True, help="Issue source uuid.")
 @common_options
 @pass_state
-def issues(state, argument, url, username, password, branch, app, source):
-    """List and sync issues from source uuid.
-
-    Usage: hackedu issues [ARGUMENTS] [OPTIONS]
-
-    Available Arguments: [ls, sync]
-
-    """
+def sonarqube(state, source, url, username, password, branch, app):
+    """Sync Issues from Sonarqube to HackEDU"""
     sonarqube = SonarqubeBase(url, username, password, app, branch)
-    issues_url = "{}/v1/issues".format(state.host)
-    vulnerabilities_url = "{}/v1/vulnerabilities".format(state.host)
+    issues_url = "{}/{}/issues".format(state.hackedu_url, state.url_prefix)
+    vulnerabilities_url = "{}/{}/vulnerabilities".format(state.hackedu_url, state.url_prefix)
+    if not source:
+        print("Error: Missing required option '--source'")
+        return
 
-    if argument == "ls":
-        response = requests.get(issues_url, headers=state.headers)
+    print("syncing sonarqube...")
+    success = False
+    sonarqube_vulnerabilities = sonarqube.get_vulnerabilities()
+    print("found {} issues".format(len(sonarqube_vulnerabilities)))
+    print("syncing issues to hackedu...")
+
+    for sonarqube_vulnerability in sonarqube_vulnerabilities:
+        response = requests.get("{}?{}".format(vulnerabilities_url,
+                                               urlencode(sonarqube_vulnerability["vulnerability_types"])),
+                                headers=state.headers)
         if response.status_code != 200:
             print("Something went wrong")
             print(response.json())
             return
 
-        issues = response.json()["issues"]
-        header = ["issue uuid", "unique id"]
-        rows = []
-        for issue in issues:
-            rows.append([issue["uuid"], issue["issue_source_unique_id"]])
-        print(tabulate(rows, header))
+        hackedu_vulnerability_id = response.json()["vulnerabilities"][0]["id"]  # TODO: we might need to loop through this list?
+        payload = {
+            "title": sonarqube_vulnerability["title"],
+            "description": "",
+            "issue_source_uuid": source,
+            "issue_source_unique_id": uuid.uuid4(),
+            "app_id": app,
+            "severity": sonarqube_vulnerability["severity"],
+            "vulnerability": hackedu_vulnerability_id,
+            "timestamp": sonarqube_vulnerability["timestamp"],
+            "url": "{}/project/issues?id={}&types=VULNERABILITY".format(url, app)
+        }
+        response = requests.post(issues_url, data=payload, headers=state.headers)
+        if response.status_code != 200:
+            print("Something went wrong")
+            print(response.json())
+            return
 
-    if argument == "sync":
-        print("syncing sonarqube...")
-        success = False
-        sonarqube_vulnerabilities = sonarqube.get_vulnerabilities()
-        print("found {} issues".format(len(sonarqube_vulnerabilities)))
-        print("syncing issues to hackedu...")
+        success = True
+        time.sleep(.5)
 
-        for sonarqube_vulnerability in sonarqube_vulnerabilities:
-            response = requests.get("{}?{}".format(vulnerabilities_url,
-                                              urlencode(sonarqube_vulnerability["vulnerability_types"])), headers=state.headers)
-            if response.status_code != 200:
-                print("Something went wrong")
-                print(response.json())
-                return
-
-            hackedu_vulnerability_id = response.json()["vulnerabilities"][0]["id"] #TODO: we might need to loop through this list?
-            payload = {
-                "title": sonarqube_vulnerability["title"],
-                "description": "",
-                "issue_source_uuid": source,
-                "issue_source_unique_id": uuid.uuid4(),
-                "app_id": app,
-                "severity": sonarqube_vulnerability["severity"],
-                "vulnerability": hackedu_vulnerability_id,
-                "timestamp": sonarqube_vulnerability["timestamp"],
-                "url": "{}/project/issues?id={}&types=VULNERABILITY".format(url, app)
-            }
-            response = requests.post(issues_url, data=payload, headers=state.headers)
-            if response.status_code != 200:
-                print("Something went wrong")
-                print(response.json())
-                return
-
-            success = True
-            time.sleep(.5)
-
-        if success:
-            print("Success!")
+    if success:
+        print("Success!")
 
 
 if __name__ == "__main__":
