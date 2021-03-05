@@ -89,9 +89,7 @@ def hackedu():
     """A CLI wrapper for the HackEDU public API."""
 
 @hackedu.command("config")
-@common_options
-@pass_state
-def config(state):
+def config():
     """Command to create your .hackedu config file."""
     api_key = click.prompt("Please enter your HackEDU API Key", type=str)
     if api_key:
