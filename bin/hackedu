@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import sys
 import os
 import click
 import json
@@ -21,35 +22,86 @@ class State(object):
         self.api_key = None
         self.headers = None
         self.hackedu_url = None
+        self.username = None
+        self.password = None
+        self.url = None
+        self.app = None
+        self.branch = None
+        self.source = None
+        self.config_path = "~/.hackedu"
         self.url_prefix = "v1"
 
 pass_state = click.make_pass_decorator(State, ensure=True)
 
+def set_state(config, state, section, option):
+    if config.has_section(section):
+        if config.has_option(section, option):
+            if not state.__dict__[option]:
+                state.__dict__[option] = config[section][option]
+
+def set_headers(config, state):
+    if config.has_section("default"):
+        if config.has_option("default", "api_key"):
+            if not state.headers:
+                state.headers = {"X-API-Key": config["default"]["api_key"]}
+
+def profile_option(f):
+    def callback(ctx, param, value):
+        state = ctx.ensure_object(State)
+        config = configparser.ConfigParser()
+
+        config_path = os.path.expanduser(state.config_path)
+        config.read(config_path)
+        if not os.path.exists(config_path):
+            print("Error")
+            print("Config file does not exist: {}".format(value))
+            sys.exit()
+
+        if not config.has_section(value):
+            print("Error")
+            print("Config file does not have profile: {}".format(value))
+            sys.exit()
+
+        for key, _ in config.items(value):
+            set_state(config, state, value, key)
+
+    return click.option("--profile",
+                        expose_value=False,
+                        default="default",
+                        help="Determines which config profile to use.",
+                        callback=callback)(f)
 
 def config_option(f):
     def callback(ctx, param, value):
         state = ctx.ensure_object(State)
         config = configparser.ConfigParser()
-        config.read(os.path.expanduser("~/.hackedu"))
 
-        if not state.headers:
-            state.headers = {"X-API-Key": config["default"]["api_key"]}
-        if not state.hackedu_url:
-            state.hackedu_url = config["default"]["hackedu_url"]
+        config_path = os.path.expanduser(value)
+        config.read(config_path)
+        state.config_path = config_path
+        if not os.path.exists(config_path):
+            print("Error")
+            print("Config file does not exist: {}".format(value))
+            sys.exit()
 
-        if value:
-            config.read(value)
-            state.headers = {"X-API-Key": config["default"]["api_key"]}
-            if not state.hackedu_url:
-                state.hackedu_url = config["default"]["hackedu_url"]
+        if config.has_section("default"):
+            set_headers(config, state)
+            set_state(config, state, "default", "hackedu_url")
 
+        if config.has_section("sonarqube"):
+            set_state(config, state, "sonarqube", "username")
+            set_state(config, state, "sonarqube", "password")
+            set_state(config, state, "sonarqube", "app")
+            set_state(config, state, "sonarqube", "branch")
+            set_state(config, state, "sonarqube", "source")
 
-        if "localhost" in state.hackedu_url:
+        if state.hackedu_url and "localhost" in state.hackedu_url:
             state.url_prefix = "v1-beta"
 
     return click.option("--config",
                         expose_value=False,
-                        help="Configuration file used to determine HackEDU public API host and API Key. ",
+                        default="~/.hackedu",
+                        help="Configuration file used for pre-defined options. ",
                         callback=callback)(f)
 
 
@@ -58,6 +110,9 @@ def hackedu_url_option(f):
         state = ctx.ensure_object(State)
         if value:
             state.hackedu_url = value
+
+        if state.hackedu_url and "localhost" in state.hackedu_url:
+            state.url_prefix = "v1-beta"
 
     return click.option("--hackedu_url",
                         expose_value=False,
@@ -78,6 +133,7 @@ def api_key_option(f):
 
 def common_options(f):
     f = config_option(f)
+    f = profile_option(f)
     f = api_key_option(f)
     f = hackedu_url_option(f)
 
@@ -104,7 +160,6 @@ def config():
 
 
 @hackedu.group()
-@common_options
 @pass_state
 def issue_source(state):
     """Issue Source commands"""
@@ -115,7 +170,7 @@ def issue_source(state):
 def ls(state):
     """List Issue Sources"""
     issue_source_url = "{}/{}/issue-sources".format(state.hackedu_url, state.url_prefix)
-    issue_source_types_path = "{}/{}/issue-source-types".format(state.hackedu_url, state.url_prefix)
+
     response = requests.get(issue_source_url, headers=state.headers)
     if response.status_code != 200:
         print("Something went wrong")
@@ -166,7 +221,6 @@ def create(state, title, type):
 
 
 @hackedu.group()
-@common_options
 @pass_state
 def issues(state):
     """Issues command"""
@@ -197,26 +251,51 @@ def ls(state, source):
 
 
 @issues.group()
-@common_options
 @pass_state
 def sync(state):
     """Sync Issues"""
 
 @sync.command("sonarqube")
-@click.option("--source", required=True, help="HackEDU Issue source uuid.")
-@click.option("--url", required=False, help="Sonarqube URL.")
-@click.option("--username", required=False, help="Sonarqube username.")
-@click.option("--password", required=False, help="Sonarqube password")
-@click.option("--branch", required=False, help="Repository branch name that Sonarqube will analyze.")
-@click.option("--app", required=False, help="Sonarqube app name.")
+@click.option("--source", help="HackEDU Issue source uuid.")
+@click.option("--url", help="Sonarqube URL.")
+@click.option("--username", help="Sonarqube username.")
+@click.option("--password", help="Sonarqube password")
+@click.option("--branch", help="Repository branch name that Sonarqube will analyze.")
+@click.option("--app", help="Sonarqube app name.")
 @common_options
 @pass_state
 def sonarqube(state, source, url, username, password, branch, app):
     """Sync Issues from Sonarqube to HackEDU"""
-    sonarqube = SonarqubeBase(url, username, password, app, branch)
+
+    if source:
+        state.source = source
+
+    if url:
+        state.url = url
+
+    if username:
+        state.username = username
+
+    if password:
+        state.password = password
+
+    if branch:
+        state.branch = branch
+
+    if app:
+        state.app = app
+
+    sonarqube = SonarqubeBase(
+        state.url,
+        state.username,
+        state.password,
+        state.app,
+        state.branch
+    )
+
     issues_url = "{}/{}/issues".format(state.hackedu_url, state.url_prefix)
     vulnerabilities_url = "{}/{}/vulnerabilities".format(state.hackedu_url, state.url_prefix)
-    if not source:
+    if not state.source:
         print("Error: Missing required option '--source'")
         return
 
@@ -239,7 +318,7 @@ def sonarqube(state, source, url, username, password, branch, app):
         payload = {
             "title": sonarqube_vulnerability["title"],
             "description": "",
-            "issue_source_uuid": source,
+            "issue_source_uuid": state.source,
             "issue_source_unique_id": uuid.uuid4(),
             "app_id": app,
             "severity": sonarqube_vulnerability["severity"],
