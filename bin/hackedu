@@ -314,25 +314,28 @@ def sonarqube(state, source, url, username, password, branch, app):
             print(response.json())
             return
 
-        hackedu_vulnerability_id = response.json()["vulnerabilities"][0]["id"]  # TODO: we might need to loop through this list?
-        payload = {
-            "title": sonarqube_vulnerability["title"],
-            "description": "",
-            "issue_source_uuid": state.source,
-            "issue_source_unique_id": uuid.uuid4(),
-            "app_id": app,
-            "severity": sonarqube_vulnerability["severity"],
-            "vulnerability": hackedu_vulnerability_id,
-            "timestamp": sonarqube_vulnerability["timestamp"],
-            "url": "{}/project/issues?id={}&types=VULNERABILITY".format(url, app)
-        }
-        response = requests.post(issues_url, data=payload, headers=state.headers)
-        if response.status_code != 200:
-            print("Something went wrong")
-            print(response.json())
-            return
+        hackedu_vulnerabilities = response.json()["vulnerabilities"]
+        for hackedu_vulnerability in hackedu_vulnerabilities:
+            payload = {
+                "title": sonarqube_vulnerability["title"],
+                "description": "",
+                "issue_source_uuid": state.source,
+                "issue_source_unique_id": uuid.uuid4(),
+                "app_id": state.app,
+                "severity": sonarqube_vulnerability["severity"],
+                "vulnerability": hackedu_vulnerability["id"],
+                "timestamp": sonarqube_vulnerability["timestamp"],
+                "url": "{}/project/issues?id={}&types=VULNERABILITY".format(state.url, state.app)
+            }
+            response = requests.post(issues_url, data=payload, headers=state.headers)
+            if response.status_code != 200:
+                print("Something went wrong")
+                print(response.json())
+                return
 
-        success = True
+            success = True
+            time.sleep(.5)
+
         time.sleep(.5)
 
     if success:
