@@ -21,7 +21,7 @@ class SonarqubeBase(object):
             "MINOR": 3
         }
 
-        for issue in issues[0:120]:
+        for issue in issues:
             rule = self.client.rules.get_rule(key=issue["rule"])
 
             if rule["rule"]["type"] == "VULNERABILITY":
