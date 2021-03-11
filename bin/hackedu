@@ -13,10 +13,7 @@ from tabulate import tabulate
 from urllib.parse import urlencode
 
 
-here = path.abspath(path.dirname(__file__))
-
-with open(path.join(here, "__version__.py"), encoding="utf-8") as f:
-    version = f.read().strip().split("=")[1].replace("\"", "")
+version = "0.1.2"
 
 
 class State(object):

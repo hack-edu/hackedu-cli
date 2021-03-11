@@ -21,11 +21,11 @@ You will now have access to the hackedu command in your terminal.
 
 ## Commands
 
-To view the available options
+### View the available options
 
     hackedu --help
 
-To create your `.hackedu` config file, run:
+### Create your `.hackedu` config file
 
     hackedu config
 

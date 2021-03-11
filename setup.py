@@ -6,12 +6,9 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, "README.md"), encoding="utf-8") as f:
     readme = f.read()
 
-with open(path.join(here, "bin/__version__.py"), encoding="utf-8") as f:
-    version = f.read().strip().split("=")[1].replace("\"", "")
-
 setup(
     name="hackedu-cli",
-    version=version,
+    version="0.1.2",
     description="HackEDU's command line interface allows customer's to interact directly with HackEDU resources "
                 "from the command line.",
     long_description=readme,
