@@ -13,7 +13,7 @@ from tabulate import tabulate
 from urllib.parse import urlencode
 
 
-version = "0.1.3"
+version = "0.1.4"
 
 
 class State(object):
