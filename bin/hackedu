@@ -172,7 +172,7 @@ def ls(state):
 
     response = requests.get(issue_source_url, headers=state.headers)
     if response.status_code != 200:
-        print("Something went wrong")
+        print("Failed!")
         print(response.json())
         return
     items = response.json()["issue_sources"]
@@ -211,7 +211,7 @@ def create(state, title, type):
 
     response = requests.post(issue_source_url, data=payload, headers=state.headers)
     if response.status_code != 200:
-        print("Something went wrong")
+        print("Failed!")
         print(response.json())
         return
 
@@ -236,7 +236,7 @@ def ls(state, source):
 
     response = requests.get(issues_url, headers=state.headers)
     if response.status_code != 200:
-        print("Something went wrong")
+        print("Failed!")
         print(response.json())
         return
 
@@ -299,7 +299,6 @@ def sonarqube(state, source, url, username, password, branch, app):
         return
 
     print("syncing sonarqube...")
-    success = False
     sonarqube_vulnerabilities = sonarqube.get_vulnerabilities()
     print("found {} issues".format(len(sonarqube_vulnerabilities)))
     print("syncing issues to hackedu...")
@@ -309,7 +308,7 @@ def sonarqube(state, source, url, username, password, branch, app):
                                                urlencode(sonarqube_vulnerability["vulnerability_types"])),
                                 headers=state.headers)
         if response.status_code != 200:
-            print("Something went wrong")
+            print("Failed!")
             print(response.json())
             return
 
@@ -334,19 +333,17 @@ def sonarqube(state, source, url, username, password, branch, app):
             }
             response = requests.post(issues_url, data=payload, headers=state.headers)
             if response.status_code != 200:
-                print("Something went wrong")
+                print("Failed!")
                 print(response.json())
                 return
 
-            success = True
+
             time.sleep(.5)
 
         time.sleep(.5)
 
-    if success:
-        print("Success!")
-    else:
-        print("Failed!")
+
+    print("Success!")
 
 if __name__ == "__main__":
     hackedu(prog_name="hackedu")
