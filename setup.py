@@ -6,7 +6,7 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, "README.md"), encoding="utf-8") as f:
     readme = f.read()
 
-with open(path.join(here, "__version__.py"), encoding="utf-8") as f:
+with open(path.join(here, "bin/__version__.py"), encoding="utf-8") as f:
     version = f.read().strip().split("=")[1].replace("\"", "")
 
 setup(
