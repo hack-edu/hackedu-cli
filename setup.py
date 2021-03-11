@@ -1,25 +1,26 @@
-import pathlib
-import setuptools
-from setuptools import setup
+from os import path
+from setuptools import setup, find_packages
 
-HERE = pathlib.Path(__file__).parent
+here = path.abspath(path.dirname(__file__))
 
-README = (HERE / "README.md").read_text()
+with open(path.join(here, "README.md"), encoding="utf-8") as f:
+    readme = f.read()
 
-VERSION = (HERE / "__version__.py").read_text().split("=")[1]
+with open(path.join(here, "__version__.py"), encoding="utf-8") as f:
+    version = f.read().strip().split("=")[1].replace("\"", "")
 
 setup(
     name="hackedu-cli",
-    version=VERSION,
+    version=version,
     description="HackEDU's command line interface allows customer's to interact directly with HackEDU resources "
                 "from the command line.",
-    long_description=README,
+    long_description=readme,
     long_description_content_type="text/markdown",
     url="https://github.com/hack-edu/hackedu-cli",
     author="HackEDU",
     author_email="matt@hackedu.com",
     license="Copyright HackEDU",
-    packages=setuptools.find_packages(),
+    packages=find_packages(),
     include_package_data=True,
     install_requires=[
         "requests==2.25.1",

@@ -1,20 +1,22 @@
 #!/usr/bin/python
 
-import sys
-import os
 import click
+import configparser
 import json
-import pathlib
 import requests
+import sys
+import time
 import uuid
 from integrations.sonarqube import SonarqubeBase
+from os import path
 from tabulate import tabulate
 from urllib.parse import urlencode
-import time
-import configparser
 
-HERE = pathlib.Path(__file__).parent
-VERSION = (HERE / "../__version__.py").read_text().split("=")[1]
+
+here = path.abspath(path.dirname(__file__))
+
+with open(path.join(here, "__version__.py"), encoding="utf-8") as f:
+    version = f.read().strip().split("=")[1].replace("\"", "")
 
 
 class State(object):
@@ -50,9 +52,9 @@ def profile_option(f):
         state = ctx.ensure_object(State)
         config = configparser.ConfigParser()
 
-        config_path = os.path.expanduser(state.config_path)
+        config_path = path.expanduser(state.config_path)
         config.read(config_path)
-        if not os.path.exists(config_path):
+        if not path.exists(config_path):
             print("Error")
             print("Config file does not exist: {}".format(value))
             sys.exit()
@@ -76,10 +78,10 @@ def config_option(f):
         state = ctx.ensure_object(State)
         config = configparser.ConfigParser()
 
-        config_path = os.path.expanduser(value)
+        config_path = path.expanduser(value)
         config.read(config_path)
         state.config_path = config_path
-        if not os.path.exists(config_path):
+        if not path.exists(config_path):
             print("Error")
             print("Config file does not exist: {}".format(value))
             sys.exit()
@@ -140,7 +142,7 @@ def common_options(f):
     return f
 
 @click.group()
-@click.version_option(VERSION)
+@click.version_option(version)
 def hackedu():
     """A CLI wrapper for the HackEDU public API."""
 
@@ -152,10 +154,10 @@ def config():
         config_location = click.prompt("Where would you like to store your HackEDU config file? Leave empty for default location:", type=str, default="~/")
         file_contents = "[default]\napi_key={}\nhackedu_url=https://api.hackedu.com".format(api_key)
         if config_location != "~/":
-            with open(os.path.expanduser("{}/.hackedu".format(config_location)), "w") as config_file:
+            with open(path.expanduser("{}/.hackedu".format(config_location)), "w") as config_file:
                 config_file.write(file_contents)
         else:
-            with open(os.path.expanduser("~/.hackedu"), "w") as config_file:
+            with open(path.expanduser("~/.hackedu"), "w") as config_file:
                 config_file.write(file_contents)
 
 
