@@ -6,7 +6,7 @@ HERE = pathlib.Path(__file__).parent
 
 README = (HERE / "README.md").read_text()
 
-VERSION = (HERE / "__version__.py").read_text().split('=')[1]
+VERSION = (HERE / "__version__.py").read_text().split("=")[1]
 
 setup(
     name="hackedu-cli",
@@ -27,5 +27,5 @@ setup(
         "tabulate==0.8.9",
         "python-sonarqube-api==1.2.1"
     ],
-    scripts=['bin/hackedu'],
+    scripts=["bin/hackedu"],
 )

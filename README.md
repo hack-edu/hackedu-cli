@@ -1,4 +1,5 @@
-# hackedu-cli
+# HackEDU Command Line Interface
+
 HackEDU's command line interface allows customer's to interact directly with HackEDU resources
 from the command line.
 
