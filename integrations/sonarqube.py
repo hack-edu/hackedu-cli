@@ -33,11 +33,15 @@ class SonarqubeBase(object):
                 m_cwe = re.search("CWE-[0-9]+", desc)
                 m_cve = re.search("CVE-[0-9]+", desc)
                 m_capec = re.search("CAPEC-[0-9]+", desc)
+                readable_list = list(set([m_cwe.group(0) if m_cwe else None,
+                                                 m_cve.group(0) if m_cve else None,
+                                                 m_capec.group(0) if m_capec else None]))
 
                 vulnerability_obj = {
                     "title": issue["message"],
                     "severity": severity_mapping[severity],
                     "timestamp": timestamp,
+                    "vulnerabilities": [x for x in readable_list if x is not None],
                     "vulnerability_types": {
                         "cwe": m_cwe.group(0).split("-")[1] if m_cwe else "",
                         "cve": m_cve.group(0).split("-")[1] if m_cve else "",

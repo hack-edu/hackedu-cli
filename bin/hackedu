@@ -191,7 +191,7 @@ def ls(state):
 def create(state, title, type):
     """Create Issue Source"""
     issue_source_url = "{}/{}/issue-sources".format(state.hackedu_url, state.url_prefix)
-    issue_source_types_path = "{}/{}/issue-source-types".format(state.hackedu_url, state.url_prefix)
+    issue_source_types_path = "{}/{}/issue-sources/types".format(state.hackedu_url, state.url_prefix)
     if not title:
         print("Error: Missing required option '--title'")
         return
@@ -206,7 +206,7 @@ def create(state, title, type):
 
     if type == "sonarqube":
         response = requests.get("{}?key={}".format(issue_source_types_path, type), headers=state.headers)
-        issue_source_type_id = response.json()["issue_source_types"][0]["issue_source_type_id"]
+        issue_source_type_id = response.json()["types"][0]["id"]
         payload["issue_source_type_id"] = issue_source_type_id
 
     response = requests.post(issue_source_url, data=payload, headers=state.headers)
@@ -314,6 +314,12 @@ def sonarqube(state, source, url, username, password, branch, app):
             return
 
         hackedu_vulnerabilities = response.json()["vulnerabilities"]
+
+        if not hackedu_vulnerabilities:
+            print("could not find {} in HackEDU database, skipping..."
+                  .format("".join(sonarqube_vulnerability["vulnerabilities"])))
+            continue
+
         for hackedu_vulnerability in hackedu_vulnerabilities:
             payload = {
                 "title": sonarqube_vulnerability["title"],
@@ -339,7 +345,8 @@ def sonarqube(state, source, url, username, password, branch, app):
 
     if success:
         print("Success!")
-
+    else:
+        print("Failed!")
 
 if __name__ == "__main__":
     hackedu(prog_name="hackedu")
