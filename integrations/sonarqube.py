@@ -1,14 +1,35 @@
-from sonarqube import SonarQubeClient
+from sonarqube import SonarQubeClient, SonarEnterpriseClient, SonarCloudClient
 import re
 
 class SonarqubeBase(object):
-    def __init__(self, url, username, password, app, branch):
+    def __init__(self, url, username, password, token, app, branch, edition):
         self.url = url
         self.username = username
         self.password = password
+        self.token = token
         self.app = app
         self.branch = branch
-        self.client = SonarQubeClient(sonarqube_url=self.url, username=self.username, password=self.password)
+        self.edition = edition
+
+        if self.username and self.password:
+            if self.edition == 'community':
+                self.client = SonarQubeClient(sonarqube_url=self.url, username=self.username, password=self.password)
+            elif self.edition == 'enterprise':
+                self.client = SonarEnterpriseClient(sonarqube_url=self.url, username=self.username, password=self.password)
+            elif self.edition == 'cloud':
+                self.client = SonarCloudClient(sonarcloud_url=self.url, username=self.username, password=self.password)
+            else:
+                self.client = SonarQubeClient(sonarqube_url=self.url, username=self.username, password=self.password)
+
+        if token:
+            if self.edition == 'community':
+                self.client = SonarQubeClient(sonarqube_url=self.url, token=self.token)
+            elif self.edition == 'enterprise':
+                self.client = SonarEnterpriseClient(sonarqube_url=self.url, token=self.token)
+            elif self.edition == 'cloud':
+                self.client = SonarCloudClient(sonarcloud_url=self.url, token=self.token)
+            else:
+                self.client = SonarQubeClient(sonarqube_url=self.url, token=self.token)
 
     def get_vulnerabilities(self):
         issues = list(self.client.issues.search_issues(componentKeys=self.app, branch=self.branch))

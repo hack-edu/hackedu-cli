@@ -23,8 +23,10 @@ class State(object):
         self.hackedu_url = None
         self.username = None
         self.password = None
+        self.token = None
         self.url = None
         self.app = None
+        self.edition = None
         self.branch = None
         self.source = None
         self.config_path = "~/.hackedu"
@@ -90,9 +92,11 @@ def config_option(f):
         if config.has_section("sonarqube"):
             set_state(config, state, "sonarqube", "username")
             set_state(config, state, "sonarqube", "password")
+            set_state(config, state, "sonarqube", "token")
             set_state(config, state, "sonarqube", "app")
             set_state(config, state, "sonarqube", "branch")
             set_state(config, state, "sonarqube", "source")
+            set_state(config, state, "sonarqube", "edition")
 
         if state.hackedu_url and "localhost" in state.hackedu_url:
             state.url_prefix = "v1-beta"
@@ -148,7 +152,8 @@ def config():
     """Command to create your .hackedu config file."""
     api_key = click.prompt("Please enter your HackEDU API Key", type=str)
     if api_key:
-        config_location = click.prompt("Where would you like to store your HackEDU config file? Leave empty for default location:", type=str, default="~/")
+        config_location = click.prompt("Where would you like to store your HackEDU config file? Leave empty for "
+                                       "default location:", type=str, default="~/")
         file_contents = "[default]\napi_key={}\nhackedu_url=https://api.hackedu.com".format(api_key)
         if config_location != "~/":
             with open(path.expanduser("{}/.hackedu".format(config_location)), "w") as config_file:
@@ -259,11 +264,14 @@ def sync(state):
 @click.option("--url", help="Sonarqube URL.")
 @click.option("--username", help="Sonarqube username.")
 @click.option("--password", help="Sonarqube password")
+@click.option("--token", help="Sonar authentication token. Can be used in place of username and password")
 @click.option("--branch", help="Repository branch name that Sonarqube will analyze.")
 @click.option("--app", help="Sonarqube app name.")
+@click.option("--edition", help="Sonarqube edition.", type=click.Choice(["community", "enterprise", "cloud"],
+                                                                        case_sensitive=False))
 @common_options
 @pass_state
-def sonarqube(state, source, url, username, password, branch, app):
+def sonarqube(state, source, url, username, password, token, branch, app, edition):
     """Sync Issues from Sonarqube to HackEDU"""
 
     if source:
@@ -278,18 +286,26 @@ def sonarqube(state, source, url, username, password, branch, app):
     if password:
         state.password = password
 
+    if token:
+        state.token = token
+
     if branch:
         state.branch = branch
 
     if app:
         state.app = app
 
+    if edition:
+        state.edition = edition
+
     sonarqube = SonarqubeBase(
         state.url,
         state.username,
         state.password,
+        state.token,
         state.app,
-        state.branch
+        state.branch,
+        state.edition,
     )
 
     issues_url = "{}/{}/issues".format(state.hackedu_url, state.url_prefix)
