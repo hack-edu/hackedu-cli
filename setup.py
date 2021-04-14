@@ -8,7 +8,7 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
 
 setup(
     name="hackedu-cli",
-    version="0.1.4",
+    version="0.1.5",
     description="HackEDU's command line interface allows customer's to interact directly with HackEDU resources "
                 "from the command line.",
     long_description=readme,
