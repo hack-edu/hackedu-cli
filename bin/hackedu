@@ -93,13 +93,11 @@ def config_option(f):
             set_state(config, state, "sonarqube", "username")
             set_state(config, state, "sonarqube", "password")
             set_state(config, state, "sonarqube", "token")
+            set_state(config, state, "sonarqube", "url")
             set_state(config, state, "sonarqube", "app")
             set_state(config, state, "sonarqube", "branch")
             set_state(config, state, "sonarqube", "source")
             set_state(config, state, "sonarqube", "edition")
-
-        if state.hackedu_url and "localhost" in state.hackedu_url:
-            state.url_prefix = "v1-beta"
 
     return click.option("--config",
                         expose_value=False,
@@ -113,9 +111,6 @@ def hackedu_url_option(f):
         state = ctx.ensure_object(State)
         if value:
             state.hackedu_url = value
-
-        if state.hackedu_url and "localhost" in state.hackedu_url:
-            state.url_prefix = "v1-beta"
 
     return click.option("--hackedu_url",
                         expose_value=False,
