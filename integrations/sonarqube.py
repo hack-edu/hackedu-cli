@@ -1,5 +1,6 @@
 from sonarqube import SonarQubeClient, SonarEnterpriseClient, SonarCloudClient
 import click
+import sys
 import re
 
 class SonarqubeBase(object):
@@ -12,13 +13,32 @@ class SonarqubeBase(object):
         self.branch = branch
         self.edition = edition
 
+        if not self.url:
+            print("Failed!")
+            print("Sonarqube URL is required.")
+            sys.exit()
+
+        if not self.app:
+            print("Failed!")
+            print("Sonarqube app is required.")
+            sys.exit()
+
+        if not self.branch:
+            print("Failed!")
+            print("Branch is required.")
+            sys.exit()
+
+
         if self.username and self.password:
+            if self.edition == 'cloud':
+                print("Failed!")
+                print("Sonar Cloud only accepts token based authentication.")
+                sys.exit()
+
             if self.edition == "community":
                 self.client = SonarQubeClient(sonarqube_url=self.url, username=self.username, password=self.password)
             elif self.edition == "enterprise":
                 self.client = SonarEnterpriseClient(sonarqube_url=self.url, username=self.username, password=self.password)
-            elif self.edition == "cloud":
-                self.client = SonarCloudClient(sonarcloud_url=self.url, username=self.username, password=self.password)
             else:
                 self.client = SonarQubeClient(sonarqube_url=self.url, username=self.username, password=self.password)
 
