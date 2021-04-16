@@ -53,6 +53,10 @@ specific profile.
     source=SOURCE_UUID
     token=SONARCLOUD_TOKEN
     app=SONARQUBE_PROJECT_KEY
+    edition=SONARQUBE_EDITION
+    organization=SONARQUBE_ORGANIZATION
+    
+    
 
 ### Create an Issue Source
 
@@ -84,4 +88,4 @@ If you are using SonarQube community edition, these are the available options:
     
 For SonarCloud, you must use token based authentication. You must also specify an organization:
     
-    hackedu issues sync sonarqube --token=TOKEN --url=SONARCLOUD_URL --source=SOURCE_UUID --app=PROJECT_KEY --branch=BRANCH --edition=cloud --organization=hack-edu
+    hackedu issues sync sonarqube --token=TOKEN --url=SONARCLOUD_URL --source=SOURCE_UUID --app=PROJECT_KEY --branch=BRANCH --edition=cloud --organization=ORGANIZATION
