@@ -13,6 +13,11 @@ class SonarqubeBase(object):
         self.branch = branch
         self.edition = edition
 
+        if not self.token and not (self.username and self.password):
+            print("Failed!")
+            print("Either token or username and password must be provided.")
+            sys.exit()
+
         if not self.url:
             print("Failed!")
             print("Sonarqube URL is required.")
@@ -27,7 +32,6 @@ class SonarqubeBase(object):
             print("Failed!")
             print("Branch is required.")
             sys.exit()
-
 
         if self.username and self.password:
             if self.edition == 'cloud':
@@ -51,6 +55,7 @@ class SonarqubeBase(object):
                 self.client = SonarCloudClient(sonarcloud_url=self.url, token=self.token)
             else:
                 self.client = SonarQubeClient(sonarqube_url=self.url, token=self.token)
+
 
     def get_vulnerabilities(self):
         issues = list(self.client.issues.search_issues(componentKeys=self.app, branch=self.branch))
