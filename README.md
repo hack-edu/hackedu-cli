@@ -47,13 +47,12 @@ specific profile.
     source=SOURCE_UUID
     username=USERNAME
     password=PASSWORD
-    app=SONARQUBE_APP_NAME
+    app=SONARQUBE_PROJECT_KEY
 
     [sonarqube_2]
     source=SOURCE_UUID
-    username=USERNAME
-    password=PASSWORD
-    app=SONARQUBE_APP_NAME
+    token=SONARCLOUD_TOKEN
+    app=SONARQUBE_PROJECT_KEY
 
 ### Create an Issue Source
 
@@ -74,3 +73,15 @@ specific profile.
 ### See the version
 
     hackedu --version
+
+### Example commands
+
+There are different configuration options depending on if you are using SonarQube Community Edition or SonarCloud. 
+
+If you are using SonarQube community edition, these are the available options:
+    
+    hackedu issues sync sonarqube --username=USERNAME --password=PASSWORD --url=SONARQUBE_URL --source=SOURCE_UUID --app=PROJECT_KEY --branch=BRANCH
+    
+For SonarCloud, you must use token based authentication. You must also specify an organization:
+    
+    hackedu issues sync sonarqube --token=TOKEN --url=SONARCLOUD_URL --source=SOURCE_UUID --app=PROJECT_KEY --branch=BRANCH --edition=cloud --organization=hack-edu
