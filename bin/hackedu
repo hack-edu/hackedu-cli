@@ -24,6 +24,7 @@ class State(object):
         self.username = None
         self.password = None
         self.token = None
+        self.organization = None
         self.url = None
         self.app = None
         self.edition = None
@@ -256,6 +257,7 @@ def sync(state):
 
 @sync.command("sonarqube")
 @click.option("--source", help="HackEDU Issue source uuid.")
+@click.option("--organization", help="Sonarqube Organization")
 @click.option("--url", help="Sonarqube URL.")
 @click.option("--username", help="Sonarqube username.")
 @click.option("--password", help="Sonarqube password")
@@ -266,11 +268,14 @@ def sync(state):
                                                                         case_sensitive=False))
 @common_options
 @pass_state
-def sonarqube(state, source, url, username, password, token, branch, app, edition):
+def sonarqube(state, source, organization, url, username, password, token, branch, app, edition):
     """Sync Issues from Sonarqube to HackEDU"""
 
     if source:
         state.source = source
+
+    if organization:
+        state.organization = organization
 
     if url:
         state.url = url
@@ -294,6 +299,7 @@ def sonarqube(state, source, url, username, password, token, branch, app, editio
         state.edition = edition
 
     sonarqube = SonarqubeBase(
+        state.organization,
         state.url,
         state.username,
         state.password,

@@ -4,7 +4,8 @@ import sys
 import re
 
 class SonarqubeBase(object):
-    def __init__(self, url, username, password, token, app, branch, edition):
+    def __init__(self, organization, url, username, password, token, app, branch, edition):
+        self.organization = organization
         self.url = url
         self.username = username
         self.password = password
@@ -52,6 +53,10 @@ class SonarqubeBase(object):
             elif self.edition == "enterprise":
                 self.client = SonarEnterpriseClient(sonarqube_url=self.url, token=self.token)
             elif self.edition == "cloud":
+                if not self.organization:
+                    print("Failed!")
+                    print("Organization is required.")
+                    sys.exit()
                 self.client = SonarCloudClient(sonarcloud_url=self.url, token=self.token)
             else:
                 self.client = SonarQubeClient(sonarqube_url=self.url, token=self.token)
@@ -72,6 +77,9 @@ class SonarqubeBase(object):
             for issue in _issues:
 
                 rule = self.client.rules.get_rule(key=issue["rule"])
+
+                if self.edition == 'cloud':
+                    rule = self.client.rules.get_rule(key=issue["rule"], organization=self.organization)
 
                 if rule["rule"]["type"] == "VULNERABILITY":
 
