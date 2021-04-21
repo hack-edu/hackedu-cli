@@ -76,10 +76,10 @@ class SonarqubeBase(object):
         with click.progressbar(issues) as _issues:
             for issue in _issues:
 
-                rule = self.client.rules.get_rule(key=issue["rule"])
-
                 if self.edition == 'cloud':
                     rule = self.client.rules.get_rule(key=issue["rule"], organization=self.organization)
+                else:
+                    rule = self.client.rules.get_rule(key=issue["rule"])
 
                 if rule["rule"]["type"] == "VULNERABILITY":
 
